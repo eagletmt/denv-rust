@@ -4,3 +4,4 @@ version = "0.1.0"
 authors = ["Kohei Suzuki <eagletmt@gmail.com>"]
 
 [dependencies]
+exec = "0.2"
