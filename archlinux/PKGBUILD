@@ -1,0 +1,23 @@
+# Maintainer: Kohei Suzuki <eagletmt@gmail.com>
+pkgname=denv
+pkgver=0.1.0
+_reponame=denv-rust
+pkgrel=1
+arch=('i686' 'x86_64')
+url='https://github.com/eagletmt/denv'
+license=('MIT')
+depends=('gcc-libs')
+makedepends=('cargo')
+source=("https://github.com/eagletmt/$_reponame/archive/v$pkgver.tar.gz")
+
+build() {
+  cd "$_reponame-$pkgver"
+  cargo build --release
+}
+package() {
+  cd "$_reponame-$pkgver"
+  mkdir -p "$pkgdir/usr/bin"
+  install -m755 target/release/$pkgname "$pkgdir/usr/bin/"
+}
+
+sha512sums=('1d292bf4a8f79cfcb9633090035dd17244135bf187f7cf5c8f456f5b7e3e6af1bad1772efe8ce892462a95e3e288e252f80cd13903ee732a08b6c30bc36ad993')
