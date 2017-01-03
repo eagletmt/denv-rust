@@ -1,4 +1,6 @@
 # denv-rust
+[![Build Status](https://travis-ci.org/eagletmt/denv-rust.svg?branch=master)](https://travis-ci.org/eagletmt/denv-rust)
+
 Rust version of [denv](https://github.com/taiki45/denv)
 
 ## CLI usage
