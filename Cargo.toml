@@ -1,6 +1,6 @@
 [package]
 name = "denv"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Kohei Suzuki <rust@wanko.cc>"]
 exclude = ["archlinux/**/*"]
 description = "Load environment variables from .env file"
