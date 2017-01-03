@@ -1,23 +1,25 @@
 extern crate exec;
 
-use std::error::Error;
+pub mod error;
+
 use std::io::BufRead;
 
-pub fn load<P: AsRef<std::path::Path>>(path: P) -> Result<(), String> {
+pub fn load<P: AsRef<std::path::Path>>(path: P) -> Result<(), error::Error> {
     for (k, v) in try!(build_env(path)) {
         std::env::set_var(k, v);
     }
     return Ok(());
 }
 
-pub fn build_env<P: AsRef<std::path::Path>>(path: P) -> Result<Vec<(String, String)>, String> {
+pub fn build_env<P: AsRef<std::path::Path>>(path: P)
+                                            -> Result<Vec<(String, String)>, error::Error> {
     match std::fs::File::open(path) {
         Ok(f) => parse(f),
-        Err(e) => Err(e.description().to_owned()),
+        Err(e) => Err(error::Error::from_io_error(e)),
     }
 }
 
-pub fn parse<R: std::io::Read>(file: R) -> Result<Vec<(String, String)>, String> {
+pub fn parse<R: std::io::Read>(file: R) -> Result<Vec<(String, String)>, error::Error> {
     let mut env = vec![];
     let reader = std::io::BufReader::new(file);
     for line_result in reader.lines() {
@@ -28,14 +30,14 @@ pub fn parse<R: std::io::Read>(file: R) -> Result<Vec<(String, String)>, String>
                 }
             }
             Err(e) => {
-                return Err(e.description().to_owned());
+                return Err(error::Error::from_io_error(e));
             }
         }
     }
     return Ok(env);
 }
 
-fn parse_line(line: &str) -> Result<Option<(&str, &str)>, &str> {
+fn parse_line(line: &str) -> Result<Option<(&str, &str)>, error::Error> {
     let line = line.trim_left();
     if line.is_empty() || line.starts_with("#") {
         return Ok(None);
@@ -45,69 +47,83 @@ fn parse_line(line: &str) -> Result<Option<(&str, &str)>, &str> {
             let key = xs[0];
             let val = xs[1];
             if key.find(char::is_whitespace).is_some() {
-                return Err("key cannot contain whitespaces");
+                return Err(error::Error::new("key cannot contain whitespaces"));
             } else {
                 return Ok(Some((key, val)));
             }
         } else {
-            return Err("key and value must be separated by `=`");
+            return Err(error::Error::new("key and value must be separated by `=`"));
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
+
+    use std::error::Error;
     use super::parse;
 
     #[test]
     fn parse_denv_file() {
-        assert_eq!(Ok(vec![("x".to_owned(), "123".to_owned()),
-                           ("y".to_owned(), "345".to_owned())]),
-                   parse("x=123\ny=345\n".as_bytes()));
+        let result = parse("x=123\ny=345\n".as_bytes());
+        assert!(result.is_ok());
+        assert_eq!(vec![("x".to_owned(), "123".to_owned()), ("y".to_owned(), "345".to_owned())],
+                   result.unwrap());
     }
 
     #[test]
     fn ignore_comment() {
-        assert_eq!(Ok(vec![("x".to_owned(), "123".to_owned()),
-                           ("y".to_owned(), "345".to_owned())]),
-                   parse("x=123\n  # comment\ny=345\n".as_bytes()));
+        let result = parse("x=123\n  # comment\ny=345\n".as_bytes());
+        assert!(result.is_ok());
+        assert_eq!(vec![("x".to_owned(), "123".to_owned()), ("y".to_owned(), "345".to_owned())],
+                   result.unwrap());
     }
 
     #[test]
     fn ignore_empty() {
-        assert_eq!(Ok(vec![("x".to_owned(), "123".to_owned()),
-                           ("y".to_owned(), "345".to_owned())]),
-                   parse("x=123\n\n    \n\ny=345\n".as_bytes()));
+        let result = parse("x=123\n\n    \n\ny=345\n".as_bytes());
+        assert!(result.is_ok());
+        assert_eq!(vec![("x".to_owned(), "123".to_owned()), ("y".to_owned(), "345".to_owned())],
+                   result.unwrap());
     }
 
     #[test]
     fn hash_in_the_middle() {
-        assert_eq!(Ok(vec![("x".to_owned(), "123".to_owned()),
-                           ("y".to_owned(), "345# comment".to_owned())]),
-                   parse("x=123\ny=345# comment\n".as_bytes()));
+        let result = parse("x=123\ny=345# comment\n".as_bytes());
+        assert!(result.is_ok());
+        assert_eq!(vec![("x".to_owned(), "123".to_owned()),
+                        ("y".to_owned(), "345# comment".to_owned())],
+                   result.unwrap());
     }
 
     #[test]
     fn equal_in_the_middle() {
-        assert_eq!(Ok(vec![("x".to_owned(), "12=3".to_owned()),
-                           ("y".to_owned(), "345".to_owned())]),
-                   parse("x=12=3\ny=345\n".as_bytes()));
+        let result = parse("x=12=3\ny=345\n".as_bytes());
+        assert!(result.is_ok());
+        assert_eq!(vec![("x".to_owned(), "12=3".to_owned()), ("y".to_owned(), "345".to_owned())],
+                   result.unwrap());
     }
 
     #[test]
     fn include_whitespaces() {
-        assert_eq!(Ok(vec![("x".to_owned(), "a text with whitespaces".to_owned()),
-                           ("y".to_owned(), "345".to_owned())]),
-                   parse("x=a text with whitespaces\ny=345\n".as_bytes()));
+        let result = parse("x=a text with whitespaces\ny=345\n".as_bytes());
+        assert!(result.is_ok());
+        assert_eq!(vec![("x".to_owned(), "a text with whitespaces".to_owned()),
+                        ("y".to_owned(), "345".to_owned())],
+                   result.unwrap());
     }
 
     #[test]
     fn malformed_line() {
-        assert!(parse("x=123\ny".as_bytes()).is_err());
+        let result = parse("x=123\ny".as_bytes());
+        assert!(result.is_err());
+        assert!(result.unwrap_err().cause().is_none());
     }
 
     #[test]
     fn malformed_key() {
-        assert!(parse("xx x=123\ny".as_bytes()).is_err());
+        let result = parse("xx x=123\ny".as_bytes());
+        assert!(result.is_err());
+        assert!(result.unwrap_err().cause().is_none());
     }
 }

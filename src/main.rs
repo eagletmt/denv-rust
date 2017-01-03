@@ -21,7 +21,10 @@ fn main() {
     }
     let path = matches.opt_str("f").unwrap_or(".env".to_owned());
 
-    denv::load(path).expect("Unable to load .env file");
+    match denv::load(path) {
+        Ok(_) => {}
+        Err(e) => panic!("{}", e),
+    }
     let err = exec::execvp(matches.free[0].clone(), matches.free);
     panic!("{}", err);
 }
