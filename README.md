@@ -1,5 +1,6 @@
 # denv-rust
 [![Build Status](https://travis-ci.org/eagletmt/denv-rust.svg?branch=master)](https://travis-ci.org/eagletmt/denv-rust)
+[![crates.io](https://img.shields.io/crates/v/denv.svg)](https://crates.io/crates/denv)
 
 Load environment variables from .env file.
 
