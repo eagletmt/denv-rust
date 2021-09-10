@@ -1,42 +1,38 @@
-pub mod error;
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error("I/O error")]
+    IoError(#[from] std::io::Error),
+    #[error("{0}")]
+    SyntaxError(&'static str),
+}
 
-use std::io::BufRead as _;
-
-pub fn load<P: AsRef<std::path::Path>>(path: P) -> Result<(), error::Error> {
+pub fn load<P: AsRef<std::path::Path>>(path: P) -> Result<(), Error> {
     for (k, v) in build_env(path)? {
         std::env::set_var(k, v);
     }
     return Ok(());
 }
 
-pub fn build_env<P: AsRef<std::path::Path>>(
-    path: P,
-) -> Result<Vec<(String, String)>, error::Error> {
-    match std::fs::File::open(path) {
-        Ok(f) => parse(f),
-        Err(e) => Err(error::Error::from_io_error(e)),
-    }
+pub fn build_env<P: AsRef<std::path::Path>>(path: P) -> Result<Vec<(String, String)>, Error> {
+    let file = std::fs::File::open(path)?;
+    parse(file)
 }
 
-pub fn parse<R: std::io::Read>(file: R) -> Result<Vec<(String, String)>, error::Error> {
+pub fn parse<R: std::io::Read>(file: R) -> Result<Vec<(String, String)>, Error> {
     let mut env = vec![];
     let reader = std::io::BufReader::new(file);
-    for line_result in reader.lines() {
-        match line_result {
-            Ok(line) => {
-                if let Some((k, v)) = parse_line(&line)? {
-                    env.push((k.to_owned(), v.to_owned()));
-                }
-            }
-            Err(e) => {
-                return Err(error::Error::from_io_error(e));
-            }
+
+    use std::io::BufRead as _;
+    for line in reader.lines() {
+        let line = line?;
+        if let Some((k, v)) = parse_line(&line)? {
+            env.push((k.to_owned(), v.to_owned()));
         }
     }
     return Ok(env);
 }
 
-fn parse_line(line: &str) -> Result<Option<(&str, &str)>, error::Error> {
+fn parse_line(line: &str) -> Result<Option<(&str, &str)>, Error> {
     let line = line.trim_start();
     if line.is_empty() || line.starts_with("#") {
         return Ok(None);
@@ -46,21 +42,19 @@ fn parse_line(line: &str) -> Result<Option<(&str, &str)>, error::Error> {
             let key = xs[0];
             let val = xs[1];
             if key.find(char::is_whitespace).is_some() {
-                return Err(error::Error::new("key cannot contain whitespaces"));
+                return Err(Error::SyntaxError("key cannot contain whitespaces"));
             } else {
                 return Ok(Some((key, val)));
             }
         } else {
-            return Err(error::Error::new("key and value must be separated by `=`"));
+            return Err(Error::SyntaxError("key and value must be separated by `=`"));
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-
-    use super::parse;
-    use std::error::Error;
+    use super::*;
 
     #[test]
     fn parse_denv_file() {
@@ -144,13 +138,13 @@ mod tests {
     fn malformed_line() {
         let result = parse("x=123\ny".as_bytes());
         assert!(result.is_err());
-        assert!(result.unwrap_err().cause().is_none());
+        assert!(matches!(result.unwrap_err(), Error::SyntaxError(_)));
     }
 
     #[test]
     fn malformed_key() {
         let result = parse("xx x=123\ny".as_bytes());
         assert!(result.is_err());
-        assert!(result.unwrap_err().cause().is_none());
+        assert!(matches!(result.unwrap_err(), Error::SyntaxError(_)));
     }
 }
