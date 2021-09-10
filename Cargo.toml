@@ -2,7 +2,6 @@
 name = "denv"
 version = "0.2.0"
 authors = ["Kohei Suzuki <rust@wanko.cc>"]
-exclude = ["archlinux/**/*"]
 description = "Load environment variables from .env file"
 homepage = "https://github.com/eagletmt/denv-rust"
 repository = "https://github.com/eagletmt/denv-rust"
