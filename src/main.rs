@@ -15,7 +15,7 @@ fn main() {
         print_usage(&program, opts);
         std::process::exit(1);
     }
-    let path = matches.opt_str("f").unwrap_or(".env".to_owned());
+    let path = matches.opt_str("f").unwrap_or_else(|| ".env".to_owned());
 
     match denv::load(path) {
         Ok(_) => {}

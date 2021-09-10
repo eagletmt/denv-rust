@@ -10,7 +10,7 @@ pub fn load<P: AsRef<std::path::Path>>(path: P) -> Result<(), Error> {
     for (k, v) in build_env(path)? {
         std::env::set_var(k, v);
     }
-    return Ok(());
+    Ok(())
 }
 
 pub fn build_env<P: AsRef<std::path::Path>>(path: P) -> Result<Vec<(String, String)>, Error> {
@@ -29,25 +29,25 @@ pub fn parse<R: std::io::Read>(file: R) -> Result<Vec<(String, String)>, Error> 
             env.push((k.to_owned(), v.to_owned()));
         }
     }
-    return Ok(env);
+    Ok(env)
 }
 
 fn parse_line(line: &str) -> Result<Option<(&str, &str)>, Error> {
     let line = line.trim_start();
-    if line.is_empty() || line.starts_with("#") {
-        return Ok(None);
+    if line.is_empty() || line.starts_with('#') {
+        Ok(None)
     } else {
-        let xs: Vec<&str> = line.splitn(2, "=").collect();
+        let xs: Vec<&str> = line.splitn(2, '=').collect();
         if xs.len() == 2 {
             let key = xs[0];
             let val = xs[1];
             if key.find(char::is_whitespace).is_some() {
-                return Err(Error::SyntaxError("key cannot contain whitespaces"));
+                Err(Error::SyntaxError("key cannot contain whitespaces"))
             } else {
-                return Ok(Some((key, val)));
+                Ok(Some((key, val)))
             }
         } else {
-            return Err(Error::SyntaxError("key and value must be separated by `=`"));
+            Err(Error::SyntaxError("key and value must be separated by `=`"))
         }
     }
 }
