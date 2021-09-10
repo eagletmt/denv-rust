@@ -11,6 +11,6 @@ license = "MIT"
 edition = "2018"
 
 [dependencies]
-exec = "0.2"
+exec = "0.3"
 getopts = "0.2"
 thiserror = "1"
