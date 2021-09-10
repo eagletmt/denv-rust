@@ -8,6 +8,7 @@ homepage = "https://github.com/eagletmt/denv-rust"
 repository = "https://github.com/eagletmt/denv-rust"
 readme = "README.md"
 license = "MIT"
+edition = "2018"
 
 [dependencies]
 exec = "0.2"

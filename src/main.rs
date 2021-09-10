@@ -1,7 +1,3 @@
-extern crate denv;
-extern crate exec;
-extern crate getopts;
-
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     let program = args[0].clone();

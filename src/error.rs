@@ -1,5 +1,3 @@
-extern crate std;
-
 #[derive(Debug)]
 pub struct Error {
     detail: Detail,
@@ -38,10 +36,14 @@ impl std::error::Error for Error {
 
 impl Error {
     pub fn new(msg: &str) -> Error {
-        return Error { detail: Detail::Error(msg.to_owned()) };
+        return Error {
+            detail: Detail::Error(msg.to_owned()),
+        };
     }
 
     pub fn from_io_error(e: std::io::Error) -> Error {
-        return Error { detail: Detail::IoError(e) };
+        return Error {
+            detail: Detail::IoError(e),
+        };
     }
 }
